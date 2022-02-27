@@ -377,6 +377,15 @@ int main(int, char**)
     ImVec4 window_background_colour = ImVec4(0.f, 0.f, 0.f, 1.00f);
 
 
+    // Values used later
+    std::string data_view_file_path = config.file_path;
+    uint64_t data_view_samples = config.samples;
+    uint64_t data_view_start_token = config.start_token;
+    uint64_t data_view_end_token = config.end_token;
+    uint64_t data_view_sample_length = config.sample_length;
+    uint64_t data_view_padding_value = config.padding_value;
+    std::string data_view_tokenizer_name = config.tokenizer_name;
+
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
@@ -409,13 +418,6 @@ int main(int, char**)
         ImVec2 main_menu_bar_size = CreateMenuBar(&MainState, &config);
 
         if (MainState.show_data_view_window) {
-            std::string file_path = config.file_path;
-            uint64_t samples = config.samples;
-            uint64_t start_token = config.start_token;
-            uint64_t end_token = config.end_token;
-            uint64_t sample_length = config.sample_length;
-            uint64_t padding_value = config.padding_value;
-            std::string tokenizer_name = config.tokenizer_name;
 
             ImVec2 data_view_window_size = ImVec2(std::ceil(screen_size.x),
                                               std::floor(screen_size.y - main_menu_bar_size.y)*.33f);
@@ -425,13 +427,13 @@ int main(int, char**)
                          ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoTitleBar
                          |ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
 
-            ImGui::InputText("File Path: ", const_cast<char *>(file_path.c_str()), 50000);
-            ImGui::InputText("File Name", const_cast<char *>(tokenizer_name.c_str()), 50000);
-            ImGui::InputInt("Number of Samples", reinterpret_cast<int *>(&samples));
-            ImGui::InputInt("Start Token", reinterpret_cast<int *>(&start_token));
-            ImGui::InputInt("End Token", reinterpret_cast<int *>(&end_token));
-            ImGui::InputInt("Sample Length", reinterpret_cast<int *>(&sample_length));
-            ImGui::InputInt("Padding Value", reinterpret_cast<int *>(&padding_value));
+            ImGui::InputText("File Path: ", const_cast<char *>(data_view_file_path.c_str()), 50000);
+            ImGui::InputText("File Name", const_cast<char *>(data_view_tokenizer_name.c_str()), 50000);
+            ImGui::InputInt("Number of Samples", reinterpret_cast<int *>(&data_view_samples));
+            ImGui::InputInt("Start Token", reinterpret_cast<int *>(&data_view_start_token));
+            ImGui::InputInt("End Token", reinterpret_cast<int *>(&data_view_end_token));
+            ImGui::InputInt("Sample Length", reinterpret_cast<int *>(&data_view_sample_length));
+            ImGui::InputInt("Padding Value", reinterpret_cast<int *>(&data_view_padding_value));
             ImGui::Checkbox("Load: ", &MainState.load_the_file);
             ImGui::Text("%s", MainState.error_message.c_str());
             ImGui::End();
@@ -448,13 +450,13 @@ int main(int, char**)
                          |ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
             if (MainState.load_the_file) {
                 ParameterErrors errors = VerifyParameters(
-                            file_path,
-                            tokenizer_name,
-                            samples,
-                            start_token,
-                            end_token,
-                            sample_length,
-                            padding_value
+                        data_view_file_path,
+                        data_view_tokenizer_name,
+                        data_view_samples,
+                        data_view_start_token,
+                        data_view_end_token,
+                        data_view_sample_length,
+                        data_view_padding_value
                         );
                 if (errors.any) {
                     MainState.error_message = "Invalid Configuration";
@@ -479,37 +481,37 @@ int main(int, char**)
                 }
                 else {
                     MainState.error_message = "";
-                    config.file_path = file_path;
-                    config.tokenizer_name = tokenizer_name;
-                    config.samples = samples;
-                    config.start_token = start_token;
-                    config.end_token = end_token;
-                    config.sample_length = sample_length;
-                    config.padding_value = padding_value;
+                    config.file_path = data_view_file_path;
+                    config.tokenizer_name = data_view_tokenizer_name;
+                    config.samples = data_view_samples;
+                    config.start_token = data_view_start_token;
+                    config.end_token = data_view_end_token;
+                    config.sample_length = data_view_sample_length;
+                    config.padding_value = data_view_padding_value;
                     MainState.load_the_file = false;
                     SaveConfig(config);
-                    if (samples*sample_length*sizeof(uint64_t) > getTotalSystemMemory()) {
+                    if (data_view_samples * data_view_sample_length * sizeof(uint64_t) > getTotalSystemMemory()) {
                         MainState.error_message = "Not enough memory to load dataset";
                         MainState.data_loaded = false;
                     }
                     else {
-                        if (samples > MAXIMUM_SAMPLES_TO_RENDER) {
-                            samples = MAXIMUM_SAMPLES_TO_RENDER;
-                            MainState.error_message = "Maximum samples to render is " + std::to_string(MAXIMUM_SAMPLES_TO_RENDER);
+                        if (data_view_samples > MAXIMUM_SAMPLES_TO_RENDER) {
+                            data_view_samples = MAXIMUM_SAMPLES_TO_RENDER;
+                            MainState.error_message = "Maximum data_view_samples to render is " + std::to_string(MAXIMUM_SAMPLES_TO_RENDER);
                         }
                         py::array_t<int> data = LoadTrainDataMT(
-                                samples,
-                                file_path,
-                                tokenizer_name,
-                                start_token,
-                                end_token,
-                                sample_length,
-                                padding_value
+                                data_view_samples,
+                                data_view_file_path,
+                                data_view_tokenizer_name,
+                                data_view_start_token,
+                                data_view_end_token,
+                                data_view_sample_length,
+                                data_view_padding_value
                         );
                         MainState.data = data;
                         MainState.data_loaded = true;
-                        MainState.data_max = end_token;
-                        MainState.data_min = padding_value;
+                        MainState.data_max = data_view_end_token;
+                        MainState.data_min = data_view_padding_value;
                     }
                     }
                 }
