@@ -224,6 +224,7 @@ ImVec2 CreateMenuBar(CurrentState *state, Config *config) {
             if (ImGui::MenuItem("Save Configuration")) {
                 SaveConfig(*config);
             }
+            ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Data")) {
             if (ImGui::MenuItem("View Data")) {
