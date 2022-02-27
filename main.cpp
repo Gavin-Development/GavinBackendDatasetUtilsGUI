@@ -547,8 +547,8 @@ int main(int, char**)
                             ImGui::TextUnformatted(buf);
 
                             float colour[4];
-                            float start_color[] = {0.0, 0.0, 1.0, 1.0};
-                            float end_color[] = {1.0, 0.0, 0.0, 1.0};
+                            float start_color[] = {0.19, 0.36, 0.87, 1.0};  // Blue
+                            float end_color[] = {0.87, 0.19, 0.28, 1.0};  // Red
                             linear_gradient((float)cell_value, (float)MainState.data_min,
                                             (float)MainState.data_max, start_color, end_color, colour);
                             ImU32 colour_cast = ImColor(colour[0], colour[1], colour[2], colour[3]);
