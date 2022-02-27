@@ -352,7 +352,7 @@ int main(int, char**)
     int height = 720;
     ImVec2 screen_size = ImVec2(1280, 720);
     // Create window with graphics context
-    GLFWwindow* window = glfwCreateWindow(width, height, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(width, height, "Gavin Dataset Editor", nullptr, nullptr);
     if (window == nullptr)
         return 1;
 
