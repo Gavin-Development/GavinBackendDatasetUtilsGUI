@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 project(GavinBackendDatasetUtilsGUI)
 
 set(CMAKE_CXX_STANDARD 17)
-find_package(Python 3.9 EXACT REQUIRED COMPONENTS Interpreter Development NumPy)
+find_package(Python 3.8 REQUIRED COMPONENTS Interpreter Development NumPy)
 
 configure_file(CMakeLists.txt.in imgui-download/CMakeLists.txt)
 execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
