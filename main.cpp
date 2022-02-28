@@ -69,17 +69,23 @@ const static std::map<int, const char*> popup_ids{
 
 
 struct CurrentState {
+    // Windows
     bool show_demo_window = false;
     bool show_data_view_window = true;
     bool show_data_converter_window = false;
     bool show_file_selector = false;
 
+    // Data View
     bool load_the_file = false;
     py::array_t<int> data;
     bool data_loaded = false;
     uint64_t data_min = 0;
     uint64_t data_max = 0;
 
+    // Data Converter
+    bool should_convert_data = false;
+
+    // Misc
     std::string error_message;
 };
 
@@ -581,12 +587,15 @@ int main(int, char**)
             ImGui::InputText("File to Convert", const_cast<char *>(file_convert_path), 50000);
             ImGui::InputText("File to Save", const_cast<char *>(file_save_path), 50000);
             ImGui::Text("%s", MainState.error_message.c_str());
+            ImGui::Checkbox("Convert data", &MainState.should_convert_data);
             ImGui::End();
-            try {
-                ConvertToBinFormat(samples_to_convert, file_convert_path, file_save_path);
-            }
-            catch (const std::exception& ex) {
-                MainState.error_message = ex.what();
+            if (MainState.should_convert_data) {
+                try {
+                    ConvertToBinFormat(samples_to_convert, file_convert_path, file_save_path);
+                }
+                catch (const std::exception& ex) {
+                    MainState.error_message = ex.what();
+                }
             }
         }
 
