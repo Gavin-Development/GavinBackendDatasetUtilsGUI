@@ -404,13 +404,6 @@ int main(int, char**)
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         glfwPollEvents();
 
-        for (ImGuiKey key = 32; key < GLFW_KEY_LAST; key++)
-        {
-            if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q) && glfwGetKey(window, key) == GLFW_PRESS)
-                glfwSetWindowShouldClose(window, true);
-            else if ((key == GLFW_KEY_RIGHT_CONTROL || key == GLFW_KEY_LEFT_CONTROL) && glfwGetKey(window, key) == GLFW_PRESS)
-                MainState.show_data_view_window = !MainState.show_data_view_window;
-        }
 
 
         // Start the Dear ImGui frame
