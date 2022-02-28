@@ -259,9 +259,9 @@ ImVec2 CreateMenuBar(CurrentState *state, Config *config) {
     return size;
 }
 
-ParameterErrors VerifyParameters(const std::string& file_path, const std::string& tokenizer_name, uint64_t sample_size,
-                                 uint64_t start_token, uint64_t end_token, uint64_t sample_length,
-                                 uint64_t padding_value) {
+ParameterErrors verify_data_view_parameters(const std::string& file_path, const std::string& tokenizer_name, uint64_t sample_size,
+                                            uint64_t start_token, uint64_t end_token, uint64_t sample_length,
+                                            uint64_t padding_value) {
     ParameterErrors errors = ParameterErrors();
     if (tokenizer_name.empty()) {
         errors.tokenizer_name = true;
@@ -450,7 +450,7 @@ int main(int, char**)
                          ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoTitleBar
                          |ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
             if (MainState.load_the_file) {
-                ParameterErrors errors = VerifyParameters(
+                ParameterErrors errors = verify_data_view_parameters(
                         data_view_file_path,
                         data_view_tokenizer_name,
                         data_view_samples,
@@ -458,7 +458,7 @@ int main(int, char**)
                         data_view_end_token,
                         data_view_sample_length,
                         data_view_padding_value
-                        );
+                );
                 if (errors.any) {
                     MainState.error_message = "Invalid Configuration";
                     if (errors.tokenizer_name) {
