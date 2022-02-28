@@ -384,14 +384,21 @@ int main(int, char**)
     ImVec4 window_background_colour = ImVec4(0.f, 0.f, 0.f, 1.00f);
 
 
-    // Values used later
-    std::string data_view_file_path = config.file_path;
+    // Data View Variables
+    char data_view_file_path[50000];
+    char data_view_tokenizer_name[50000];
+    config.file_path.copy(data_view_file_path, config.file_path.size());
+    config.tokenizer_name.copy(data_view_tokenizer_name, config.tokenizer_name.size());
     uint64_t data_view_samples = config.samples;
     uint64_t data_view_start_token = config.start_token;
     uint64_t data_view_end_token = config.end_token;
     uint64_t data_view_sample_length = config.sample_length;
     uint64_t data_view_padding_value = config.padding_value;
-    std::string data_view_tokenizer_name = config.tokenizer_name;
+
+    // Data Converter Variables
+    uint64_t samples_to_convert = 0;
+    char file_convert_path[50000];
+    char file_save_path[50000];
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -403,7 +410,6 @@ int main(int, char**)
         // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         glfwPollEvents();
-
 
 
         // Start the Dear ImGui frame
@@ -427,8 +433,8 @@ int main(int, char**)
                          ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoTitleBar
                          |ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
 
-            ImGui::InputText("File Path: ", const_cast<char *>(data_view_file_path.c_str()), 50000);
-            ImGui::InputText("File Name", const_cast<char *>(data_view_tokenizer_name.c_str()), 50000);
+            ImGui::InputText("File Path: ", data_view_file_path, IM_ARRAYSIZE(data_view_file_path));
+            ImGui::InputText("File Name", data_view_tokenizer_name, IM_ARRAYSIZE(data_view_tokenizer_name));
             ImGui::InputInt("Number of Samples", reinterpret_cast<int *>(&data_view_samples));
             ImGui::InputInt("Start Token", reinterpret_cast<int *>(&data_view_start_token));
             ImGui::InputInt("End Token", reinterpret_cast<int *>(&data_view_end_token));
@@ -565,9 +571,6 @@ int main(int, char**)
         }
 
         if (MainState.show_data_converter_window) {
-            uint64_t samples_to_convert;
-            const char* file_convert_path;
-            const char* file_save_path;
             ImVec2 data_converter_window_size = ImVec2(std::ceil(screen_size.x),
                                                        std::floor(screen_size.y-main_menu_bar_size.y)
                     );
@@ -577,8 +580,8 @@ int main(int, char**)
                          ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoTitleBar
                          |ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
             ImGui::InputInt("Number of Samples", reinterpret_cast<int *>(&samples_to_convert));
-            ImGui::InputText("File to Convert", const_cast<char *>(file_convert_path), 50000);
-            ImGui::InputText("File to Save", const_cast<char *>(file_save_path), 50000);
+            ImGui::InputText("File to Convert", file_convert_path, IM_ARRAYSIZE(file_convert_path));
+            ImGui::InputText("File to Save", file_save_path, IM_ARRAYSIZE(file_save_path));
             ImGui::Text("%s", MainState.error_message.c_str());
             ImGui::Checkbox("Convert data", &MainState.should_convert_data);
             ImGui::End();
