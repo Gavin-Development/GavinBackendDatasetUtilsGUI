@@ -14,12 +14,10 @@
 #endif
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
 #include <iostream>
-#include <fstream>
 #include <map>
 #include <ImGuiFileBrowser.h>
 #include <DataLoader.hpp>
 #include <cmath>
-#include <sstream>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -87,6 +85,7 @@ struct CurrentState {
 
     // Misc
     std::string error_message;
+    std::string info_message;
 };
 
 struct Config {
@@ -582,16 +581,19 @@ int main(int, char**)
             ImGui::InputInt("Number of Samples", reinterpret_cast<int *>(&samples_to_convert));
             ImGui::InputText("File to Convert", file_convert_path, IM_ARRAYSIZE(file_convert_path));
             ImGui::InputText("File to Save", file_save_path, IM_ARRAYSIZE(file_save_path));
-            ImGui::Text("%s", MainState.error_message.c_str());
+            ImGui::Text("Info: %s", MainState.info_message.c_str()); ImGui::SameLine(); ImGui::Text("Error: %s", MainState.error_message.c_str());
             ImGui::Checkbox("Convert data", &MainState.should_convert_data);
             ImGui::End();
             if (MainState.should_convert_data) {
                 try {
+                    MainState.info_message = "Converting data...\nThis may freeze the UI for a few seconds.";
                     ConvertToBinFormat(samples_to_convert, file_convert_path, file_save_path);
                 }
                 catch (const std::exception& ex) {
                     MainState.error_message = ex.what();
                 }
+                MainState.should_convert_data = false;
+                MainState.info_message = "Conversion Complete";
             }
         }
 
