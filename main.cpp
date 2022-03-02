@@ -338,7 +338,7 @@ void load_the_file(CurrentState *state, Config *config, std::string file_path, s
         if (errors.tokenizer_name) {
             state->error_message += ": Tokenizer Name";
         }
-        if (errors.samples) {cmake dl libs.
+        if (errors.samples) {
             state->error_message += ": Number of Samples";
         }
         if (errors.start_token) {
