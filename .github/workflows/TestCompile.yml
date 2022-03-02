@@ -34,7 +34,7 @@ jobs:
       if: startsWith(matrix.config.name, 'Ubuntu_Latest_GCC')
       run: |
         sudo apt-get update -y
-        sudo apt-get install -y ninja-build cmake python3.9-dev python3-pip python3-setuptools python3-wheel python3-wheel libglfw3 libglfw3-dev
+        sudo apt-get install -y ninja-build cmake python3.9-dev python3-pip python3-setuptools python3-wheel python3-wheel libglfw3 libglfw3-dev libglew2.2 libglew-dev
         ninja --version
         cmake --version
         gcc --version
