@@ -89,4 +89,5 @@ target_link_libraries(
         ${EXTRA_LIBS}
         ${PYTHON_LIBRARIES}
         pybind11::embed
+        ${CMAKE_DL_LIBS}
 )
