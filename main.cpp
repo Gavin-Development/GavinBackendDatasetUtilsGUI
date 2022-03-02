@@ -33,7 +33,7 @@
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
-int MAXIMUM_SAMPLES_TO_RENDER = 5000;
+int MAXIMUM_SAMPLES_TO_RENDER = 400;
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 unsigned long long getTotalSystemMemory()
 {
@@ -338,7 +338,7 @@ void load_the_file(CurrentState *state, Config *config, std::string file_path, s
         if (errors.tokenizer_name) {
             state->error_message += ": Tokenizer Name";
         }
-        if (errors.samples) {
+        if (errors.samples) {cmake dl libs.
             state->error_message += ": Number of Samples";
         }
         if (errors.start_token) {
