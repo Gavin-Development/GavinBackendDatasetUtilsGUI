@@ -324,6 +324,7 @@ void linear_gradient(float value, float min_value, float max_value, float *start
 
 void load_the_file(CurrentState *state, Config *config, std::string file_path, std::string tokenizer_name, int no_samples, int start_token, int end_token,
                    int sample_length, int padding_value) {
+    sample_length += 1;
     ParameterErrors errors = verify_data_view_parameters(
             file_path,
             tokenizer_name,
@@ -539,9 +540,9 @@ int main(int, char**)
                         ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti
                         | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_NoBordersInBody;
 
-                if (ImGui::BeginTable("Data table", MainState.data.shape()[1]+1), flags) {
+                if (ImGui::BeginTable("Data table", MainState.data.shape()[1]), flags) {
                     ImGui::TableSetupColumn("Idx");
-                    for (int i = 0; i<MainState.data.shape()[1]; i++) {
+                    for (int i = 0; i<MainState.data.shape()[1]-1; i++) {
                         std::ostringstream oss;
                         oss << i;
                         ImGui::TableSetupColumn(oss.str().c_str());
