@@ -246,16 +246,6 @@ ImVec2 CreateMenuBar(CurrentState *state, Config *config) {
             if (ImGui::MenuItem("Close View Data")) {
                 TurnOffViewData(state);
             }
-            ImGui::Separator();
-            if (ImGui::MenuItem("Convert Data")) {
-                state->show_data_converter_window = true;
-                state->show_demo_window = false;
-                TurnOffViewData(state);
-            }
-            if (ImGui::MenuItem("Close Convert Data")) {
-                state->show_data_converter_window = false;
-                state->show_data_view_window = true;
-            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help")) {
