@@ -82,6 +82,7 @@ struct CurrentState {
     bool data_loaded = false;
     uint64_t data_min = 0;
     uint64_t data_max = 0;
+    uint64_t min_row = 0;
 
     // Misc
     std::string error_message;
@@ -321,6 +322,75 @@ void linear_gradient(float value, float min_value, float max_value, float *start
     }
 }
 
+void load_the_file(CurrentState *state, Config *config, std::string file_path, std::string tokenizer_name, int no_samples, int start_token, int end_token,
+                   int sample_length, int padding_value) {
+    ParameterErrors errors = verify_data_view_parameters(
+            file_path,
+            tokenizer_name,
+            no_samples,
+            start_token,
+            end_token,
+            sample_length,
+            padding_value
+    );
+    if (errors.any) {
+        state->error_message = "Invalid Configuration";
+        if (errors.tokenizer_name) {
+            state->error_message += ": Tokenizer Name";
+        }
+        if (errors.samples) {
+            state->error_message += ": Number of Samples";
+        }
+        if (errors.start_token) {
+            state->error_message += ": Start Token";
+        }
+        if (errors.end_token) {
+            state->error_message += ": End Token";
+        }
+        if (errors.sample_length) {
+            state->error_message += ": Sample Length";
+        }
+        if (errors.padding_value) {
+            state->error_message += ": Padding Value";
+        }
+    }
+    else {
+        state->error_message = "";
+        config->data_view_file_path = file_path;
+        config->data_view_tokenizer_name = tokenizer_name;
+        config->samples = no_samples;
+        config->start_token = start_token;
+        config->end_token = end_token;
+        config->sample_length = sample_length;
+        config->padding_value = padding_value;
+        state->load_the_file = false;
+        SaveConfig(*config);
+        if (no_samples * sample_length * sizeof(uint64_t) > getTotalSystemMemory()) {
+            state->error_message = "Not enough memory to load dataset";
+            state->data_loaded = false;
+        }
+        else {
+            /* if (no_samples > MAXIMUM_SAMPLES_TO_RENDER) {
+                no_samples = MAXIMUM_SAMPLES_TO_RENDER;
+                state->error_message = "Maximum data_view_samples to render is " + std::to_string(MAXIMUM_SAMPLES_TO_RENDER);
+            } */
+            py::array_t<int> data = LoadTrainDataMT(
+                    no_samples,
+                    file_path,
+                    tokenizer_name,
+                    start_token,
+                    end_token,
+                    sample_length,
+                    padding_value
+            );
+            state->data = data;
+            state->data_loaded = true;
+            state->data_max = end_token;
+            state->data_min = padding_value;
+        }
+    }
+}
+
 int main(int, char**)
 {
     imgui_addons::ImGuiFileBrowser file_dialog; // As a class member or globally
@@ -433,15 +503,25 @@ int main(int, char**)
                          ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoTitleBar
                          |ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
 
-            ImGui::InputText("File Path: ", data_view_file_path, IM_ARRAYSIZE(data_view_file_path));
+            ImGui::InputText("File Path", data_view_file_path, IM_ARRAYSIZE(data_view_file_path));
             ImGui::InputText("File Name", data_view_tokenizer_name, IM_ARRAYSIZE(data_view_tokenizer_name));
             ImGui::InputInt("Number of Samples", reinterpret_cast<int *>(&data_view_samples));
             ImGui::InputInt("Start Token", reinterpret_cast<int *>(&data_view_start_token));
             ImGui::InputInt("End Token", reinterpret_cast<int *>(&data_view_end_token));
             ImGui::InputInt("Sample Length", reinterpret_cast<int *>(&data_view_sample_length));
             ImGui::InputInt("Padding Value", reinterpret_cast<int *>(&data_view_padding_value));
-            ImGui::Checkbox("Load: ", &MainState.load_the_file);
-            ImGui::Text("%s", MainState.error_message.c_str());
+            if (ImGui::Button("Load")) load_the_file(&MainState, &config, data_view_file_path,
+                                                     data_view_tokenizer_name, data_view_samples,
+                                                     data_view_start_token, data_view_end_token,
+                                                     data_view_sample_length,
+                                                     data_view_padding_value);
+            if (MainState.data_loaded && MainState.data.shape()[0] > MAXIMUM_SAMPLES_TO_RENDER) {
+                ImGui::SameLine();
+                ImGui::SliderInt("Minimum Row", reinterpret_cast<int *>(&MainState.min_row), 0,
+                                 MainState.data.shape()[0] - MAXIMUM_SAMPLES_TO_RENDER);
+            }
+            ImGui::Text("Error: %s", MainState.error_message.c_str());
+            ImGui::Text("Info: %s", MainState.info_message.c_str());
             ImGui::End();
             ImGui::SetNextWindowSize({
                 std::ceil(screen_size.x),
@@ -454,80 +534,13 @@ int main(int, char**)
             ImGui::Begin("GavinBackendDatasetUtils-Data", &MainState.show_data_view_window,
                          ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoTitleBar
                          |ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
-            if (MainState.load_the_file) {
-                ParameterErrors errors = verify_data_view_parameters(
-                        data_view_file_path,
-                        data_view_tokenizer_name,
-                        data_view_samples,
-                        data_view_start_token,
-                        data_view_end_token,
-                        data_view_sample_length,
-                        data_view_padding_value
-                );
-                if (errors.any) {
-                    MainState.error_message = "Invalid Configuration";
-                    if (errors.tokenizer_name) {
-                        MainState.error_message += ": Tokenizer Name";
-                    }
-                    if (errors.samples) {
-                        MainState.error_message += ": Number of Samples";
-                    }
-                    if (errors.start_token) {
-                        MainState.error_message += ": Start Token";
-                    }
-                    if (errors.end_token) {
-                        MainState.error_message += ": End Token";
-                    }
-                    if (errors.sample_length) {
-                        MainState.error_message += ": Sample Length";
-                    }
-                    if (errors.padding_value) {
-                        MainState.error_message += ": Padding Value";
-                    }
-                }
-                else {
-                    MainState.error_message = "";
-                    config.data_view_file_path = data_view_file_path;
-                    config.data_view_tokenizer_name = data_view_tokenizer_name;
-                    config.samples = data_view_samples;
-                    config.start_token = data_view_start_token;
-                    config.end_token = data_view_end_token;
-                    config.sample_length = data_view_sample_length;
-                    config.padding_value = data_view_padding_value;
-                    MainState.load_the_file = false;
-                    SaveConfig(config);
-                    if (data_view_samples * data_view_sample_length * sizeof(uint64_t) > getTotalSystemMemory()) {
-                        MainState.error_message = "Not enough memory to load dataset";
-                        MainState.data_loaded = false;
-                    }
-                    else {
-                        if (data_view_samples > MAXIMUM_SAMPLES_TO_RENDER) {
-                            data_view_samples = MAXIMUM_SAMPLES_TO_RENDER;
-                            MainState.error_message = "Maximum data_view_samples to render is " + std::to_string(MAXIMUM_SAMPLES_TO_RENDER);
-                        }
-                        py::array_t<int> data = LoadTrainDataMT(
-                                data_view_samples,
-                                data_view_file_path,
-                                data_view_tokenizer_name,
-                                data_view_start_token,
-                                data_view_end_token,
-                                data_view_sample_length,
-                                data_view_padding_value
-                        );
-                        MainState.data = data;
-                        MainState.data_loaded = true;
-                        MainState.data_max = data_view_end_token;
-                        MainState.data_min = data_view_padding_value;
-                    }
-                    }
-                }
-            else if (MainState.data_loaded) {
+            if (MainState.data_loaded) {
                 static ImGuiTableFlags flags =
                         ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti
-                        | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_NoBordersInBody
-                        | ImGuiTableFlags_ScrollY;
+                        | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_NoBordersInBody;
 
-                if (ImGui::BeginTable("Data table", MainState.data.shape()[1]), flags) {
+                if (ImGui::BeginTable("Data table", MainState.data.shape()[1]+1), flags) {
+                    ImGui::TableSetupColumn("Idx");
                     for (int i = 0; i<MainState.data.shape()[1]; i++) {
                         std::ostringstream oss;
                         oss << i;
@@ -537,14 +550,15 @@ int main(int, char**)
                     int max_samples;
                     if (MainState.data.shape()[0] > MAXIMUM_SAMPLES_TO_RENDER) {
                         max_samples = MAXIMUM_SAMPLES_TO_RENDER;
-                        MainState.error_message = "Maximum Samples reached";
                     }
                     else {
                         max_samples = MainState.data.shape()[0];
                     }
-                    for (int row = 0; row < max_samples; row++) {
+                    for (int row = MainState.min_row; row < MainState.min_row+max_samples; row++) {
                         ImGui::TableNextRow();
-                        for (int col = 0; col < MainState.data.shape()[1]; col++) {
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TextUnformatted(std::to_string(row).c_str());
+                        for (int col = 1; col < MainState.data.shape()[1]; col++) {
                             ImGui::TableSetColumnIndex(col);
                             int cell_value = MainState.data.at(row, col);
                             char buf[512];
