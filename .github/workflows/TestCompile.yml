@@ -32,10 +32,10 @@ jobs:
         echo github.event_name: ${{ github.event_name }}
     - name: Search Packages
       run: |
-        - echo "Searching for packages..."
-        - echo "Packages: "
-        - sudo apt-get update -y
-        - sudo apt-cache search glew
+        echo "Searching for packages..."
+        echo "Packages: "
+        sudo apt-get update -y
+        sudo apt-cache search glew
     - name: Install dependencies on ubuntu
       if: startsWith(matrix.config.name, 'Ubuntu_Latest_GCC')
       run: |
