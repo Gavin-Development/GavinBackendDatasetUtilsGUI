@@ -91,3 +91,6 @@ target_link_libraries(
         pybind11::embed
         ${CMAKE_DL_LIBS}
 )
+if (UNIX)
+    target_link_libraries(${PROJECT_NAME} pthread)
+endif()
