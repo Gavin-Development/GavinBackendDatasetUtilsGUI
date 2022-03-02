@@ -9,6 +9,8 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 #include <cstdio>
+#include <thread>
+#include <future>
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <GLES2/gl2.h>
 #endif
@@ -18,6 +20,7 @@
 #include <ImGuiFileBrowser.h>
 #include <DataLoader.hpp>
 #include <cmath>
+#include <utility>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -80,9 +83,6 @@ struct CurrentState {
     uint64_t data_min = 0;
     uint64_t data_max = 0;
 
-    // Data Converter
-    bool should_convert_data = false;
-
     // Misc
     std::string error_message;
     std::string info_message;
@@ -94,8 +94,14 @@ struct Config {
     uint64_t  end_token = 0;
     uint64_t  sample_length = 0;
     uint64_t  padding_value = 0;
-    std::string file_path;
-    std::string tokenizer_name;
+    std::string data_view_file_path;
+    std::string data_view_tokenizer_name;
+
+    // Data Converter
+    std::string data_converter_file_path;
+    std::string data_converter_save_path;
+    uint64_t  data_converter_number_of_samples = 0;
+
 };
 
 enum PopUpIDs {
@@ -139,11 +145,11 @@ Config LoadConfig() {
                     value.append(line, i+1, std::string::npos);
                 }
             }
-            if (key == "tokenizer_name") {
-                config.tokenizer_name = value;
+            if (key == "data_view_tokenizer_name") {
+                config.data_view_tokenizer_name = value;
             }
-            else if (key == "file_path") {
-                config.file_path = value;
+            else if (key == "data_view_file_path") {
+                config.data_view_file_path = value;
             }
             else if (key == "samples") {
                 try {
@@ -204,8 +210,8 @@ void SaveConfig(const Config& config) {
     std::fstream config_file;
     config_file.open("config.ini", std::ios::out);
     if (config_file) {
-        config_file << "tokenizer_name=" << config.tokenizer_name << std::endl;
-        config_file << "file_path=" << config.file_path << std::endl;
+        config_file << "data_view_tokenizer_name=" << config.data_view_tokenizer_name << std::endl;
+        config_file << "data_view_file_path=" << config.data_view_file_path << std::endl;
         config_file << "samples=" << config.samples << std::endl;
         config_file << "start_token=" << config.start_token << std::endl;
         config_file << "end_token=" << config.end_token << std::endl;
@@ -308,7 +314,6 @@ float remap(float n, float a, float b, float x, float y) {
     return lerp(x, y, ulerp(n, a, b));
 }
 
-
 void linear_gradient(float value, float min_value, float max_value, float *start_color, float *end_color, float *out) {
     for (int i = 0; i < 4; i++) {
         float percent = ulerp(value, min_value, max_value);
@@ -316,11 +321,12 @@ void linear_gradient(float value, float min_value, float max_value, float *start
     }
 }
 
-
 int main(int, char**)
 {
     imgui_addons::ImGuiFileBrowser file_dialog; // As a class member or globally
+    // Python stuff
     py::scoped_interpreter guard{};
+    Py_Initialize();
 
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
@@ -386,18 +392,13 @@ int main(int, char**)
     // Data View Variables
     char data_view_file_path[50000];
     char data_view_tokenizer_name[50000];
-    config.file_path.copy(data_view_file_path, config.file_path.size());
-    config.tokenizer_name.copy(data_view_tokenizer_name, config.tokenizer_name.size());
+    config.data_view_file_path.copy(data_view_file_path, config.data_view_file_path.size());
+    config.data_view_tokenizer_name.copy(data_view_tokenizer_name, config.data_view_tokenizer_name.size());
     uint64_t data_view_samples = config.samples;
     uint64_t data_view_start_token = config.start_token;
     uint64_t data_view_end_token = config.end_token;
     uint64_t data_view_sample_length = config.sample_length;
     uint64_t data_view_padding_value = config.padding_value;
-
-    // Data Converter Variables
-    uint64_t samples_to_convert = 0;
-    char file_convert_path[50000];
-    char file_save_path[50000];
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -486,8 +487,8 @@ int main(int, char**)
                 }
                 else {
                     MainState.error_message = "";
-                    config.file_path = data_view_file_path;
-                    config.tokenizer_name = data_view_tokenizer_name;
+                    config.data_view_file_path = data_view_file_path;
+                    config.data_view_tokenizer_name = data_view_tokenizer_name;
                     config.samples = data_view_samples;
                     config.start_token = data_view_start_token;
                     config.end_token = data_view_end_token;
@@ -567,34 +568,6 @@ int main(int, char**)
         else if (!MainState.show_data_view_window) {
             MainState.data = py::array_t<int>();
             MainState.data_loaded = false;
-        }
-
-        if (MainState.show_data_converter_window) {
-            ImVec2 data_converter_window_size = ImVec2(std::ceil(screen_size.x),
-                                                       std::floor(screen_size.y-main_menu_bar_size.y)
-                    );
-            ImGui::SetNextWindowSize(data_converter_window_size);
-            ImGui::SetNextWindowPos(ImVec2(0, main_menu_bar_size.y));
-            ImGui::Begin("GavinBackendDatasetUtils-Config", &MainState.show_data_view_window,
-                         ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoTitleBar
-                         |ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoResize);
-            ImGui::InputInt("Number of Samples", reinterpret_cast<int *>(&samples_to_convert));
-            ImGui::InputText("File to Convert", file_convert_path, IM_ARRAYSIZE(file_convert_path));
-            ImGui::InputText("File to Save", file_save_path, IM_ARRAYSIZE(file_save_path));
-            ImGui::Text("Info: %s", MainState.info_message.c_str()); ImGui::SameLine(); ImGui::Text("Error: %s", MainState.error_message.c_str());
-            ImGui::Checkbox("Convert data", &MainState.should_convert_data);
-            ImGui::End();
-            if (MainState.should_convert_data) {
-                try {
-                    MainState.info_message = "Converting data...\nThis may freeze the UI for a few seconds.";
-                    ConvertToBinFormat(samples_to_convert, file_convert_path, file_save_path);
-                }
-                catch (const std::exception& ex) {
-                    MainState.error_message = ex.what();
-                }
-                MainState.should_convert_data = false;
-                MainState.info_message = "Conversion Complete";
-            }
         }
 
 
