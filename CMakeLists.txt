@@ -78,6 +78,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/GavinBackendDatasetUtils-src/Gav
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/pybind11-src/include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/imgui-addons-src/FileBrowser/)
 include_directories(${Python_INCLUDE_DIRS})
+# include_directories(${Python_NumPy_INCLUDE_DIRS})
 
 add_executable(${PROJECT_NAME} main.cpp ${GAVIN_BACKEND_SRC})
 target_link_libraries(${PROJECT_NAME} imgui)
